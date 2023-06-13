@@ -9,66 +9,89 @@ library(viridis)
 library(scales)
 
 
-# Sys.setenv(RETICULATE_PYTHON = "C:\\Users/kaitlin.palmer/Anaconda3")
-# library(reticulate)
-# import('scipy')
-
-# all of the functions needed to calculate the noise metrics
-# still toying around witht the best approach to writing/reading data in 
-# universally accessable format
-
-# #ICES formatting
-# getICESMeta<-function(){
-#   HydrophoneType
-#   HydrophoneSerialNumber
-#   RecorderType
-#   RecorderSerialNumber
-#   MeasurementHeight# Height above the seafloor, in meters
-#   MeasurementPurpose #Description of why the continuous underwater noise 
-#   #measurements reported were monitored
-#   MeasurementSetup #Description of deployment. Mandatory in case the 
-#   #purpose is "HELCOM monitoring"
-#   RigDesign #Description of deployment construction. Mandatory 
-#   # in case the purpose is "HELCOM monitoring"
-#   FrequencyCount #Number of frequency bands
-#   FrequencyIndex #Third octave band nominal center frequencies. This 
-#   #field is an array of frequencies, with as many 
-#   #columns as the number of frequency bands reported 
-#   #under FrequencyCount
-#   FrequencyUnit 
-#   ChannelCount
-#   MeasurementTotalNo #Number of measurements
-#   MeasurementUnit #Unit in which the values are in e.g. dB re 1µPa
-#   AveragingTime #Averaging time in seconds
-#   ProcessingAlgorithm #Algorithm used to process the data e.g. computation 
-#   #method for third octave band (fft, filter bank ...)- 
-#   #analysis
-#   DataUUID = #Unique identification number, linking the data 
-#   #submission to the corresponding raw data. It should 
-#   #be used for resubmissions of the same data; matlab 
-#   #function available:
-#   #  uuid = char(java.util.UUID.randomUUID);
-#   DatasetVersion #Indicates version of the submitted dataset. It should 
-#   # be changed upon resubmission
-#   CalibrationProcedure #Method used to check the 
-# #   measuring chain. e.g. point calibration with 
-# #   pistonphone, functionality test with microphone and 
-# #   loudspeaker (frequency dependent), or other
-# #   method used to check the 
-# #   measuring chain. e.g. point calibration with 
-# #   pistonphone, functionality test with microphone and 
-# #   loudspeaker (frequency dependent), or other.
-# #   Mandatory in case the purpose is "HELCOM 
-# #  monitoring"
-#   CalibrationDateTime #Date of when the system was last calibrated. 
-#   # Mandatory in case "CalibrationProcedure" is 
-#   # specified UTC DateTime in ISO 8601 format: YYYYMM-DDThh:mm[:ss] or YYYY-MM-DD hh:mm[:ss]. 
-#   # Seconds are optional.
-#   # For example:
-#   #   2020-04-01 11:36Z, or
-#   # 2020-04-01 11:36:23Z
-#   Comments 
-#   }
+getICESprms<-function(prms){
+  
+  # Input parameters and flesh out whatever is missing for the file information
+  # Metadata group
+  # Data group
+  
+  
+  # File group values
+  FileGroupVars = c('Email', 'CreationDate', 'StartDate', 'EndDate', 'Institution',
+                    'Contact', 'CountryCode', 'StationCode')
+  
+  
+  # Preallocate
+  FileGroup <- data.frame(matrix(ncol = length(FileGroupVars), nrow = 1))
+  colnames(FileGroup) <- FileGroupVars
+  
+  # Text for each descriptor
+  descriptors <- c(
+    Email = "Creator of the HDF5 file/ who holds responsibility for data QA and creation of the submited hdf5 file.:",
+    CreationDate = "Date of file creation. UTC DateTime in ISO 8601 format: YYYY-MM-DDThh:mm[:ss] or YYYY-MM-DD hh:mm[:ss] . Seconds are optional.",
+    StartDate = "Measurement collection start date. UTC DateTime in ISO 8601 format: YYYY-MM-DDThh:mm[:ss] or YYYY-MM-DD hh:mm[:ss]. Seconds are optional.",
+    EndDate = "Measurement collection end date. UTC DateTime in ISO 8601 format: YYYY-MM-DDThh:mm[:ss] or YYYY-MM-DD hh:mm[:ss]. Seconds are optional",
+    Institution ='Institution which acquired the data',
+    Contact = 'Contact of all future external queries/who submits/holds responsibility for submission ',
+    CountryCode = 'Country Code. No context given',
+    StationCode ='The station code and its associated coordinates can be found in the ICES station dictionary' 
+  )
+  
+  for (var in FileGroupVars) {
+    if (var %in% colnames(prms)) {
+      FileGroup[[var]] <- prms[[var]]
+    } else {
+      value <- readline(descriptors[var])
+      FileGroup[[var]] <- value
+    }
+  }
+  
+  
+  ## Setup the metadata group descriptors
+  
+  # Text for each descriptor
+  descriptors <- c(
+    HydrophoneType = 'This field describes the manufacturer and the used hydrophone type/model e.g. Brüell&Kjaer 8106. This field needs to be an array if there are multiple channels (one per channel).',
+    HydrophoneSerialNumber = 'e.g. "SN#1234". This field needs to be an array if there are multiple channels (one per channel).',
+    RecorderSerialNumber = 'Recorder/data logger type e.g. "Soundtrap"',
+    RecorderSerialNumber = 'Recorder serial number e.g. "SN#2345"',
+    MeasurementHeight ='Height above the seafloor, in meters',
+    MeasuremetnPurpose ='Description of why the continuous underwater noise measurements reported were monitored',
+    MeasurementSetup ='Description of deployment. Mandatory in case the purpose is "HELCOM monitoring"',
+    RigDesign ='Description of deployment construction. Mandatory in case the purpose is "HELCOM monitoring"',
+    FrequencyCount = 'Number of frequency bands',
+    FrequencyIndex = 'Third octave band nominal center frequencies. This field is an array of frequencies, with as many columns as the number of frequency bands reported under FrequencyCount',
+    FrequencyUnit ='String (10), presume Hz',
+    ChannelCount='Number of channels used',
+    MeasurementTotalNo = 'Number of measurements',
+    MeasurementUnit= 'Unit in which the values are in e.g. dB re 1μPa',
+    AveragingTime= 'Averaging time in seconds',
+    ProcessingAlgorithm= 'Algorithm used to process the data e.g. computation method for third octave band (fft, filter bank ...)- analysis',
+    DataUUID= 'Unique identification number, linking the data submission to the corresponding raw data. It should be used for resubmissions of the same data; matlab function available: uuid = char(java.util.UUID.randomUUID);',
+    DatasetVersion= 'Indicates version of the submitted dataset. It should be changed upon resubmission',
+    CalibrationProcedure= 'Method used to check the measuring chain. e.g. point calibration with pistonphone, functionality test with microphone and loudspeaker (frequency dependent), or other method used to check the measuring chain. e.g. point calibration with pistonphone, functionality test with microphone and loudspeaker (frequency dependent), or other. Mandatory in case the purpose is "HELCOM monitoring"',
+    CalibrationDateTime= 'Date of when the system was last calibrated. Mandatory in case "CalibrationProcedure" is specified UTC DateTime in ISO 8601 format: YYYY-MM-DDThh:mm[:ss] or YYYY-MM-DD hh:mm[:ss]. Seconds are optional.',
+    Comments =''
+  )
+  
+  MetaGroupVars = names(descriptors)
+  # Preallocate
+  MetaGroup <- data.frame(matrix(ncol = length(MetaGroupVars), nrow = 1))
+  colnames(MetaGroup) <- MetaGroupVars
+  
+  
+  for (var in MetaGroupVars) {
+    if (var %in% colnames(prms)) {
+      MetaGroup[[var]] <- prms[[var]]
+    } else {
+      value <- readline(descriptors[var])
+      MetaGroup[[var]] <- value
+    }
+  }
+  
+  
+  
+}
 
 createICESmeta<-function(){
   
@@ -92,8 +115,19 @@ createAudioDataframe <- function(fileLoc,
   audioData$Duration = as.numeric(sapply(audioData$files, 
                                          av_media_info)["duration", ]) 
   audioData$EndTime = audioData$StartTime+audioData$Duration
-  return(audioData)
+  
+  
+  # Pull sample rate from first file, assume consistnat (required)
+  prms = av_media_info(audioData$files[1])$audio
+  prms$duration = av_media_info(audioData$files[1])$duration
+  colnames(prms)[colnames(prms)=='sample_rate']='Fs' # field standard
+  
+  dataOut = list(audioData=audioData, prms=prms)
+  
+  return(dataOut)
 }
+
+
 
 createWindow<-function(winname, prms){
   
@@ -949,6 +983,55 @@ makePSDDist<-function(instrument_group){
   return(p)
 }
 
+calcMetrics<-function(prms, Psstrimmed, f, w){
+  # Driver function to return a matrix of 
+  # metrics - list of metrics to calculate including hybrid, broadband, decadeband
+  # and thirdoct
+  # prms- dataframe of parameters
+  # Psstrimmed - power spectrum
+  # f - frequencies associated with the PSS
+  
+  metrics<-prms$metrics
+  
+  
+  outList = list()
+  if('hybrid' %in% metrics){
+    # Hybrid milidecade from PSS
+    hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
+    
+    # add key value pair
+    outList[['hybLevels']]<-hybridMilidecade[[1]]
+    outList[['hybFreqs']]<-hybridMilidecade[[2]]
+  }
+  
+  if('thirdoct' %in% metrics){
+    # Third Ocatave Bands (checked)
+    thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
+    
+    # add key value pair
+    outList[['thridOctLevels']]<-thirdOctBands[[1]]
+    outList[['thirdOctF']]<-thirdOctBands[[2]]
+  }
+  
+  if('decadeband' %in% metrics){
+    # Decade bands
+    DecadeBands =calcDecadeBands(prms, Psstrimmed,f, w)
+    
+    # add key value pair
+    outList[['DecadeBandsLevels']]<-DecadeBands[[1]]
+    outList[['DecadeBandsF']]<-DecadeBands[[2]]
+  }
+  
+  if('broadband' %in% metrics){
+    # Broadband (checked)
+    BroadBandLevels =calcBroadband(prms,Psstrimmed)
+    
+    # add key value pair
+    outList[['BroadBandLevels']]<-BroadBandLevels}
+  
+  return(outList)
+  
+}
 
   
 # # Function for processing the data within the GUI

@@ -20,6 +20,7 @@ h5createDataset(file = ProjName,
                 dataset = paste(groupName,'AveragingTime',sep="/"),
                 dims = 1,
                 storage.mode = 'integer')
+
 # Dataset has been created (or indexed)-populate with new information
 h5write(
   prms$aveSec,
