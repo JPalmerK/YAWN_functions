@@ -47,6 +47,8 @@ ___
 ## Limitations
 The package used to load audio only handles wav files (:sob:). The AV package was initially attempted because of the variety of sound files it incorporates but it was not possible to create validated levels. At least not within the authors time/patienence. Suggestions on more flexible approaches are welcome. 
 
+This system does not work well with high frequency data. R has not been optimized for this and the approach is memory intensive. I do not recomend for data sampled at rates greater than 48khz. 
+
 I have not implemented all of the features of the origional PAMGuide as they do not pertain to much of the authors work.
 
 Its is not possible to add to HDF5 datasets after the initial creation as the dimensions are set at the start of the run. So, all sound files for which you intend to be in the same dataset must be in one folder. The implementation created here pulls the 
