@@ -4,56 +4,64 @@
 
 ____________
 ## TL;DR
-An R-based methodology for storing noise metrics in [H5DF5](https://www.google.com/search?q=hdf5+s&rlz=1C1GCEA_enUS1046US1046&oq=hdf5+s&aqs=chrome..69i57j69i59j69i60l3.5504j0j7&sourceid=chrome&ie=UTF-8) files. Modularized to pick and chose which metrics to store and open source for dealing with data irregularities. 
+An R-based methodology for storing noise metrics in [HDF5 (Hierarchical Data Format version 5)](https://www.hdfgroup.org/solutions/hdf5/)  files. The code is modularized so a user can pick and chose which metrics to store. This repository is licensed as open source software to help the community deal with data irregularities. 
 
 Pre-written metrics
-1) Hybrid-milidecade levels
-2) Third-octave levels
-3) Decade-bands
-4) Broadband
+1) Hybrid-millidecade band levels
+2) Third-octave band levels
+3) Decade band levels
+4) Broadband level
 
-Pre-written plotting functions. Returns standard plots in ggplot format
-1) LTSA
+Pre-written plotting functions. These returns standard plots in ggplot format.
+1) LTSA (Long-term Spectral Average)
 2) Probability distribution
 3) Hourly noise level distributions
 _______________________
 ## Introduction
 
-Measuring ambient noise levels is an important part of many ecological studies and particularly in the marine environment where noise levels are both a conservation concern and a hindrance to passive acoustic monitoring. Anthropogenic noise has been implicated in the death of deep diving marine species such as beaked whales and as a secondary stressor in other marine mammals including killer whales and right whales. With ongoing acoustic monitoring efforts for many vocally active species, monitoring background noise levels is also key in understanding changes in detection range which could bias monitoring or real-time conservation efforts.
+Measuring ambient noise levels is an important part of many ecological studies, particularly in the marine environment where noise levels are both an emerging conservation concern for many signaling or listening species and a hindrance to passive acoustic monitoring for signals from soniferous species. Anthropogenic noise has been implicated in the stranding of deep diving marine species such as beaked whales and as a stressor in other marine mammals including endangered killer whales and right whales. With ongoing acoustic monitoring efforts for many vocally active species, quantitative assessment of background noise levels is also key in understanding changes in detection range which could bias monitoring or real-time conservation efforts.
 
-There are plethora of free and paid services used to calculate noise metrics including PAMGuard (www.Pamguard.org), Triton, and PAMGuide. Each of these systems have their benefits and limitations and bioacousicians often find themselves in need of modification for their own specific data needs. For instance, Triton and its associate Remoras are also free and there is a compiled version that does not require MATLAB. However, any customization does require a MATLAB license which is frequently cost prohibitive, especially for researchers in developing countries. PAMGuard is both free and an industry standard but can be difficult to work with and JAVA is not commonly known among biologists. This makes it challenging for researchers to troubleshoot without reaching out to a small but dedicated team of maintainers. Finally, PAMGuide was written in both R and MATLAB and includes a Matlab-GUI, allowing for user-friendly interface. The paper was well received, with over 200 citations, in no small part because of the well-documented and published code provided by the author. However, it too has limitations have required extensive modifications for many long-term noise projects and, after 9 years, the code was due for some updates. Principle among the limitations the speed of analysis and the storage options initially provided (either mat files or .csv files). These become ungainly at best and untenable at worst when working with large, multi-instrument, or multi-year arrays. An ideal storage solution would allow storage for large, multi-level datasets with descriptors, metadata, efficient access speed and accessibility across multiple platforms. Presently H5DF databases meet these criteria. These formats are platform independent, self-described, and open source (sharing is caring).
+There are plethora of free and paid services used to calculate noise metrics including PAMGuard (www.Pamguard.org), [Triton](https://www.cetus.ucsd.edu/technologies_triton.html), and [PAMGuide](https://sourceforge.net/projects/pamguide/). Each of these systems have their benefits and limitations and bioacousicians often find themselves in need of modification for their own specific data needs. For instance, Triton and its associate Remoras are also free and there is a compiled version that does not require MATLAB. However, any customization does require a MATLAB license which is frequently cost prohibitive, especially for researchers in developing countries. PAMGuard is both free and an industry standard but can be difficult to work with and JAVA is not commonly known among biologists. This makes it challenging for researchers to troubleshoot without reaching out to a small but dedicated team of maintainers. Finally, PAMGuide was written in both R and MATLAB and includes a Matlab-GUI, allowing for user-friendly interface. 
 
+The [PAMGuide paper (Merchant et. al 2014)](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12330) was well received, with over 200 citations, in no small part because of the well-documented and published code provided by the author. However, it too has limitations have required extensive modifications for many long-term noise projects and, after 9 years, the code was due for some updates. Principle among the limitations the speed of analysis and the storage options initially provided (either mat files or .csv files). These become ungainly at best and untenable at worst when working with large, multi-instrument, or multi-year arrays. 
 
-Additionally [Martin et al., 2021](https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/6033d0181ce4934ad7c3d913/1614008346204/Martin_et_al_2021_Hybrid+millidecade+spectra_practical+format+for+ambient+data+exchange.pdf) provided a efficient methodology for storing and sharing large database of sound metrics. These metrics provide an efficient methodology for sharing large-scale and long term datasets. 
+An ideal storage solution would allow storage for large, multi-level datasets with descriptors, metadata, efficient access speed and accessibility across multiple platforms. Presently HDF5 databases meet these criteria. Such formats are platform independent, self-described, and open source (sharing is caring).
 
-The principal goal of this work is to produce a reliable and flexible system for recording noise metrics. In achieving this goal I required that the systme be built in a well-established language within the biological field (R) making it as accessable to as many researchers as possible. The data storage should also allow for multi-level organization, storage of large files, be accessable to multiple software packages/languages, and ultimately itegrate with the sturdy meatadata managment system, [Tethys](https://tethys.sdsu.edu/). 
+Additionally [Martin et al., 2021](https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/6033d0181ce4934ad7c3d913/1614008346204/Martin_et_al_2021_Hybrid+millidecade+spectra_practical+format+for+ambient+data+exchange.pdf) provided a efficient methodology for storing and sharing large database of sound metrics. These metrics provide an efficient methodology for sharing large-scale and long-term datasets. 
 
-In this repository I've used the R based FFT and level metric calcualtions by Merchant et. al 2014 but updated the functions and wrappers to allow for procesing of large number of sound files and storing in a HDF5 database.   
+## YAWN goals, features, & status
 
-This is repository contains a modidified version of [Merchant et. al's 2014](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12330) noise analysis tools. This major modifications between this version and the origional incude
-1) Saving data to hdf5 files rather than CSV's. This allows for much larger data to be stored and multiple deployments in a single study
-2) Saving large PSD data as hybrid milidecades (e.g. [Martin et al. 2021](https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/6033d0181ce4934ad7c3d913/1614008346204/Martin_et_al_2021_Hybrid+millidecade+spectra_practical+format+for+ambient+data+exchange.pdf))
-3) Allow  user-specified anlysis parameters to be saved as part of database  
-4) Modularizing as many aspects of the code as possible in order to integrate with SHINY apps (future) and allow for readabiliyt
-5) Vectorizing where possible to increase speed
-6) Ability to exclude the first N seconds of the file (this is useful for soundtraps)
-7) Example code for constructing popular noise level plots from the H5DF
+The principal goal of YAWN is to produce a reliable and flexible system for recording noise metrics. In achieving this goal I required that the system be built in a well-established language within the biological field ([R](https://www.r-project.org/)) which is free and open source software under the GPL license. These characteristics make the language as accessable to as many researchers as possible. I also required that the data storage should also allow for multi-level organization, storage of large files, be accessable to multiple software packages/languages, and ultimately itegrate with the sturdy metadata managment system, [Tethys](https://tethys.sdsu.edu/). 
 
+In this repository I've used the R-based FFT and level metric calculations by Merchant et. al (2014), but updated the functions and wrappers to allow for procesing of large numbers of sound files and storing in a HDF5 database.   
 
-Data have been validated against most recent version of Pamguide so should provide consistant results.
+This repository contains a modidified version of [Merchant et. al's 2014](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12330) noise analysis tools. The major modifications between this version and the origional incude:
 
-This codebase is still in developmnet (half baked) and is not ready for release. Use at your own risk.
+1) Saving data to HDF5 files rather than CSV (comma-separated variable) files. This allows for much larger data sets to be stored efficiently, including multiple deployments within a single study;
+2) Saving large PSD (power spectral density) results as hybrid milidecades (e.g. [Martin et al. 2021](https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/6033d0181ce4934ad7c3d913/1614008346204/Martin_et_al_2021_Hybrid+millidecade+spectra_practical+format+for+ambient+data+exchange.pdf));
+3) Allowing user-specified anlysis parameters to be saved as part of database;
+4) Modularizing as many aspects of the code as possible in order to integrate with SHINY apps (in the future) and allow for readability;
+5) Vectorizing where possible to increase speed;
+6) Ability to exclude the first N seconds of the file (this is useful for Soundtraps);
+7) Example code for constructing popular noise level plots from the HDF5 files.
+
+Computational results have been validated with test data against the most recent version of PAMGuide, so the code should provide consistant results.
+
+This codebase is still in developmnet (half-baked) and is not ready for release. Use at your own risk.
+
 ___
+
 ## Limitations
-The package used to load audio only handles wav files (:sob:). The AV package was initially attempted because of the variety of sound files it incorporates but it was not possible to create validated levels. At least not within the authors time/patienence. Suggestions on more flexible approaches are welcome. 
 
-This system does not work well with high frequency data. R has not been optimized for this and the approach is memory intensive. I do not recomend for data sampled at rates greater than 48khz. 
+The package used to load audio only handles WAV files (:sob:). The AV package was initially attempted because of the variety of sound files it incorporates, but it was not possible to create validated levels. At least not within the author's available time/patienence! Suggestions on more flexible approaches are welcome. 
 
-I have not implemented all of the features of the origional PAMGuide as they do not pertain to much of the authors work.
+This system does not work well with high frequency audio data (i.e. high sample rates). R has not been optimized for this and the approach is memory intensive. I do not recommend for data sampled at rates greater than 48 kHz. 
 
-Its is not possible to add to HDF5 datasets after the initial creation as the dimensions are set at the start of the run. So, all sound files for which you intend to be in the same dataset must be in one folder. The implementation created here pulls the 
+I have not implemented all of the features of the origional PAMGuide as they do not pertain to much of the my work.
 
-Unlike the origional version, this code is not set up to read chunks of sound into memory, instead it must read the whole file. As such, very large and/or high frequency data are likely to gum up the works, as it were. This may or may not be something that gets updated in the future.
+It is not possible to add to HDF5 datasets after the initial creation as the dimensions are set at the start of the run. This means all sound files for which you intend to be in the same dataset must be in one folder. The implementation created here pulls from a scratch directory...
+
+Unlike the original version, this code is not set up to read chunks of sound into memory, instead it must read the whole file. As such, very large and/or high frequency data are likely to gum up the works, as it were. This may or may not be something that gets updated in the future.
 
 At present, only end-to-end calibration values are accepted.
 
@@ -61,10 +69,10 @@ A code review had not been preformed. Volunteers welcome. Snacks provided.
 
 ___
 ## To do (in no particular order)
-1) ~~Implement figure code with hybrid mili-decade structure and H5DF data (this is the first priortiy actually, not immediately clear the best approach for doing this)~~
+1) ~~Implement figure code with hybrid mili-decade structure and HDF5 data (this is the first priortiy actually, not immediately clear the best approach for doing this)~~
 2) Incorporate into SHINY app or similar to allow easy access for new/non-acousticians
 3) ~~low users to load frequency response of hydropone/microphone system rather than single value~~ fx structure updated, simulated data there
-4) ~~Modularize write to H5DF section~~
+4) ~~Modularize write to HDF5 section~~
 5) ~~Match window options with NM version~~
 6) ~~Ensure that delta frequency calculations are correct for decade, third octave, and hybrid bands as the frequency bandwidth varries. Ensure that this does not result in incorrest PS**D** values~~
 7) Ensure consistency with [ICES](https://www.ices.dk/data/data-portals/Pages/Continuous-Noise.aspx) database 
@@ -75,16 +83,16 @@ ___
 
 **Window Functions**
 
-The hann window from the R gsignal library varries considerably from the function outlined in [Merchant et. al's 2014](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12330). This is also true in the MATLAB version of PAMGuid, ie hann(5) ≠ (0.5 - 0.5*cos(2*pi*(1:5)/5)). In toying around with this the results have varried by several dB. I have used the published values rather than gsignal for both precision with other modules using this code and reliance on as few packages as possible.
+The hann window from the R gsignal library varies considerably from the R function outlined in [Merchant et. al (2014)](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12330). This is also true in the MATLAB version of PAMGuide, i.e. hann(5) ≠ (0.5 - 0.5*cos(2*pi*(1:5)/5)). In toying around with this, the results have varied by several dB. I have used the published values rather than gsignal for both precision with other modules using this code and reliance on as few packages as possible.
 
 **Welch Compress**
 
-The Welch compression of the power spectra using published version of the code varies from system welch compressions. I have opted for using the published version for consistency. This could use more teasing out.
+The Welch compression of the power spectra using the published PAMGuide version of the code varies from system welch compressions. I have opted for using the published version for consistency. This could use more teasing out.
 
 **End-to-end Calibration**
 
 
-Note that **caibration values must be RMS** thus, the implementing the SoundTrap manufacturer's peak-to-peak calibration values will result in noise metrics that are a few dB off.  
+Note that **calibration values must be RMS.** Thus, implementing the SoundTrap manufacturer's peak-to-peak calibration values will result in noise metrics that are a few dB off.  
 
 
 ____________________
@@ -95,11 +103,11 @@ ____________________
 
 This tutorial provides concrete example of setting up and using a series of functions to process sound data. Ultimately, this should be a GUI, but for the meantime, some R knowledge will be required.
 
-## Setting up the soundfiles and the project
+## Setting up the sound files and the project
 
-This code is structured such that data are exported to hdf5 files. These large databases are capable of handling multiple types of data and grouping datasets. For our purposes we often evaluate noise level data from multiple instruments across years and locations. Thus, the example code sets up the data assuming a higher project level and hydrophones as the lower level. Wihtin the hydrophone names we have the metrics of interest, broadband, hybrid-milidecade, and third octave sound levels. These are arranged with as datasets. Additionally, the analysis parameters, timestamps, center frequencies of the third octave and hybrid-milidecade data are saved as independent datasets within each hydrophone.
+This code is structured such that data are exported to HDF5 files. These large databases are capable of handling multiple types of data and grouping datasets. For our purposes we often evaluate noise level data from multiple instruments across years and locations. Thus, the example code sets up the data assuming a higher project level and hydrophones as the lower level. Within the hydrophone names we have the metrics of interest (e.g. broadband, hybrid-milidecade, and third octave sound levels). These are arranged as datasets. Additionally, the analysis parameters, time stamps, center frequencies of the third octave and hybrid-milidecade bands are saved as independent datasets within each hydrophone.
 
-If you don't want to muck around navigating to the functions directory, open the project and make sure you have the here library installed. The rest should just work.
+If you don't want to muck around navigating to the functions directory, open the project and make sure you have the `here` library installed. The rest should just work.
 
 ```{r}
 rm(list = ls())
@@ -118,7 +126,7 @@ source(here('NoiseProcessingFxs.r'))
 
 At present, this must be wav files. Which is a bummer.
 
-This section of code creates a dataframe with the audio file names and locations and the audio start time (assuming UTC). The data locally are typically in one of a few formats so two examples are provided here. This identifying names will be put into a function
+This section of code creates a dataframe with the audio file names and locations and the audio start time (assuming UTC). The data locally are typically in one of a few formats, so two examples are provided here. This identifying names will be put into a function.
 
 
 ```{r}
@@ -152,9 +160,9 @@ audioData = createAudioDataframe(fileLoc,nameStringPattern = nameStringPattern,
 
 ## Analysis Parameters
 
-The following section of code sets up the analysis parameters. These are standard metrics in acoustics such as sample rate (fs), fft length (samples, sorry Marie), and the averaging duration (welch) in seconds. Additional parameters are the option of removing the DC offset of the file once the sound is loaded by subtracting the mean. This was in the authors original version but here is set to an option (recommended to leave as TRUE).
+The following section of code sets up the analysis parameters. These are standard metrics in acoustics such as sample rate (fs), FFT length (samples, sorry Marie), and the averaging duration (welch) in seconds. Additional parameters are the option of removing the DC offset of the file once the sound is loaded by subtracting the mean. This was in the author's original version, but here is set to an option (recommended to leave as the default: TRUE).
 
-The calibration value can either be end-to-end in decibels or a frequency response. Here I've simulated a frequency response calibration. This could otherwise be uploaded from a CSV or similar. Note that if the calibration values are less than the Nyquist frequency, the user needs to add a value at fs/2 to their calibration dataframe. The last section creates windowing values (vector) and defines alpha in accordance with the functions published in Merchant et al. 2014.
+The calibration value can either be end-to-end in decibels or a frequency response. Here I've simulated a frequency response calibration. This could otherwise be uploaded from a CSV or similar. Note that if the calibration values are less than the Nyquist frequency, the user needs to add a value at fs/2 to their calibration dataframe. The last section creates windowing values (vector) and defines alpha in accordance with the functions published in Merchant et al. (2014).
 
 ```{r}
 ################################################################
@@ -165,11 +173,11 @@ The calibration value can either be end-to-end in decibels or a frequency respon
 fileLoc = 'D:\\RECORDINGS\\ADRIFT_001_CENSOR_12kHz'
 files <- (list.files(fileLoc[1], pattern = "\\.wav$"))
 
-# Pull sample rate from first file, assume consistnat (required)
+# Pull sample rate from first file, assume consistent (required)
 prms = av_media_info(file.path(fileLoc,files[1]))$audio
 prms$duration = av_media_info(file.path(fileLoc,files[1]))$duration
 colnames(prms)[colnames(prms)=='sample_rate']='Fs' # field standard
-prms$N = prms$Fs # fft lenght in samples
+prms$N = prms$Fs # fft length in samples
 prms$r = 0.5 # overlap in percent
 prms$aveSec = 60 # averaging window (seconds)
 prms$secSkip = 0 # number of seconds to skip when loading the file (soundtraps...)
@@ -210,9 +218,9 @@ prms$alpha = windowFunctions('hann', prms)[[1]]
 
 ## Database Initialization
 
-The following section of code sets up the H5DF database including the study name and writes some of the data that we've already established (parameters and the audio data frame). These could be useful in troubleshooting the data after it's been processed.
+The following section of code sets up the HDF5 database including the study name and writes some of the data that we've already established (parameters and the audio data frame). These could be useful in troubleshooting the data after it has been processed.
 
-The other important thing that happens in this bit of code is estimating the total number of rows that will ultimately be in the dataset. If you are planning on adding to the dataset at a later date (e.g. an instrument comes ashore, it's refurbished then returned to the field) then you need to ensure that the length is greater or equal to your ultimate length. In this case I know that I will not be adding to this dataset so I'm using the length of the time in minutes (**tt**) later on.
+The other important thing that happens in this bit of code is estimating the total number of rows that will ultimately be in the dataset. If you are planning on adding to the dataset at a later date (e.g. an instrument comes ashore, is refurbished, & then returned to the field) then you need to ensure that the length is greater or equal to your ultimate length. In this case I know that I will not be adding to this dataset so I'm using the length of the time in minutes (**tt**) later on.
 
 ```{r}
 # Database name and instrument
@@ -359,7 +367,7 @@ for(ii in 1:nrow(audioData)){
 H5Fclose(ProjName)
 ```
 
-## Create Figures from the H5DF Database
+## Create Figures from the HDF5 Database
 
 *warning*- The author has approximately 8 days experience with HDF5 files at the time of writing. There are undoubtedly cleaner ways to do this so if you have suggestions please reach out.
 
