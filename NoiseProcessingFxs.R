@@ -170,7 +170,8 @@ writeToH5datarH5df<-function(ProjName, instrumentName,
                              maxRows=NULL, storagemMode = "double",
                              fillValue = NaN){
   
-  # Write the data to a database using the rh5df package
+  # Write the data to a database using the rhdf5 package
+  # https://rdrr.io/bioc/rhdf5/man/rhdf5.html
   
   # Input 
   # ProjectName - Initialized H5 files
