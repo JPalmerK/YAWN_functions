@@ -9,6 +9,7 @@ library(viridis)
 library(scales)
 
 
+# UI function to get ICES parameters from user
 getICESprms<-function(prms){
   
   # Input parameters and flesh out whatever is missing for the file information
@@ -79,7 +80,8 @@ getICESprms<-function(prms){
   MetaGroup <- data.frame(matrix(ncol = length(MetaGroupVars), nrow = 1))
   colnames(MetaGroup) <- MetaGroupVars
   
-  
+  # step through each group and if the parameter is not defined, get it from the
+  # user
   for (var in MetaGroupVars) {
     if (var %in% colnames(prms)) {
       MetaGroup[[var]] <- prms[[var]]
@@ -93,10 +95,13 @@ getICESprms<-function(prms){
   
 }
 
+# Turn the parameters and HDF5 into the ICES format 
 createICESmeta<-function(){
-  
+  # a function to write
 }
 
+# Datafram of the audio files. Roughly approximates 'audioinfo' in matlbab
+# First step in creating metrics
 createAudioDataframe <- function(fileLoc,
                                  nameStringPattern ='\\d{12}', 
                                  lubradiateFormat ="ymdHMS"){
@@ -128,7 +133,7 @@ createAudioDataframe <- function(fileLoc,
 }
 
 
-
+# Define a window using Merchant approach. 
 createWindow<-function(winname, prms){
   
   # get the window functions
@@ -335,65 +340,6 @@ getHybridBandLimits <-function(prms, f){
 }
 
 
-# Hybred milidecad bands
-calcHybridMiDecade <-function(prms, Psstrimmed, f, w){
-  # converts PSD to much smaller milli decade bands
-  # exports in decibels
-  
-  # Input
-  # prms - analysis parameters including sample rate (Fs) and window length (N)
-  # Psstrimmed - matrix containing spectra of the within the frequency limits 
-  # between the user lowcut and nyquist
-  # f- vector of frequency values associated with PSS trimmed
-  # w- window function
-  
-  
-  # for PSD
-  delf = prms$Fs/prms$N  
-  B = (1/prms$N)*(sum((w/prms$alpha)^2)) 
-  
-  
-  # Frequency limits
-  freqLims<-getHybridBandLimits(prms, f)
-  
-  
-  # below 455, keep frequency bands
-  PssKeep = Psstrimmed[,which(f<455)+1]
-  
-  hybMiliDecade= matrix(0, nrow = dim(PssKeep)[1], 
-                        ncol = nrow(freqLims))
-  
-  hybMiliDecade[1:nrow(PssKeep), 1:ncol(PssKeep)] = PssKeep
-  
-  start = which(round(f)==round(455))+1
-  
-  # Step though the upper frequencies and get the mean value
-  for(ii in start:nrow(freqLims)-1){
-    # Create the sums
-    dataSub =  Psstrimmed[,(f>= freqLims$lowF[ii]) & (f<= freqLims$highF[ii])]
-    
-    if(!is.null(ncol(dataSub))){
-      hybMiliDecade[,ii] = rowMeans(dataSub, na.rm=TRUE)
-    }else{ hybMiliDecade[,ii] = dataSub}  
-    
-  }
-  
-  
-  # # delf is now a matrix- should this not change(???)
-  # delf = c(1,diff(freqLims$center))
-  # 
-  # # Repeat the matrix
-  # delf = matrix(rep(delf, nrow(hybMiliDecade)),
-  #               nrow = nrow(hybMiliDecade), byrow = TRUE ) 
-  
-  # Third octave level
-  hubridBands = 10*log10((1/B)*hybMiliDecade/(prms$pref^2))
-  
-  # To create the poser spectral density 
-  
-  dataOut= list(hubridBands,freqLims)
-  
-}
 
 
 # Compress in time
@@ -460,9 +406,7 @@ calibrationMatrix<- function(prms, dims){
     
   }
     return(freqCal)
-    }
-
-
+}
 
 # Return the PSD fom which all band levels are calculated
 calcPSS <- function(audioData, ii=1, prms, w, freqResp =NULL) {
@@ -561,6 +505,65 @@ calcPSS <- function(audioData, ii=1, prms, w, freqResp =NULL) {
 }
 
 
+# Hybred milidecad bands
+calcHybridMiDecade <-function(prms, Psstrimmed, f, w){
+  # converts PSD to much smaller milli decade bands
+  # exports in decibels
+  
+  # Input
+  # prms - analysis parameters including sample rate (Fs) and window length (N)
+  # Psstrimmed - matrix containing spectra of the within the frequency limits 
+  # between the user lowcut and nyquist
+  # f- vector of frequency values associated with PSS trimmed
+  # w- window function
+  
+  
+  # for PSD
+  delf = prms$Fs/prms$N  
+  B = (1/prms$N)*(sum((w/prms$alpha)^2)) 
+  
+  
+  # Frequency limits
+  freqLims<-getHybridBandLimits(prms, f)
+  
+  # below 455, keep frequency bands
+  PssKeep = Psstrimmed[,which(f<455)+1]
+  
+  hybMiliDecade= matrix(0, nrow = dim(PssKeep)[1], 
+                        ncol = nrow(freqLims))
+  
+  hybMiliDecade[1:nrow(PssKeep), 1:ncol(PssKeep)] = PssKeep
+  
+  start = which(round(f)==round(455))+1
+  
+  # Step though the upper frequencies and get the mean value
+  for(ii in start:nrow(freqLims)-1){
+    # Create the sums
+    dataSub =  Psstrimmed[,(f>= freqLims$lowF[ii]) & (f<= freqLims$highF[ii])]
+    
+    if(!is.null(ncol(dataSub))){
+      hybMiliDecade[,ii] = rowMeans(dataSub, na.rm=TRUE)
+    }else{ hybMiliDecade[,ii] = dataSub}  
+    
+  }
+  
+  
+  # # delf is now a matrix- should this not change(???)
+  # delf = c(1,diff(freqLims$center))
+  # 
+  # # Repeat the matrix
+  # delf = matrix(rep(delf, nrow(hybMiliDecade)),
+  #               nrow = nrow(hybMiliDecade), byrow = TRUE ) 
+  
+  # Third octave level
+  hubridBands = 10*log10((1/B)*hybMiliDecade/(prms$pref^2))
+  
+  # To create the poser spectral density 
+  
+  dataOut= list(hubridBands,freqLims)
+  
+}
+
 # Calculate broadband 
 calcBroadband <- function(prms,Psstrimmed) {
   
@@ -656,7 +659,6 @@ calcCustomBand = function(prms,Psstrimmed, f, flow,fhigh){
   
 }
 
-
 # Calcualte PSD
 calcPsd<- function(prms, Psstrimmed, w){
   
@@ -666,7 +668,7 @@ calcPsd<- function(prms, Psstrimmed, w){
   
   B <- (1/prms$N)*(sum((w/prms$alpha)^2))	
   delf <- prms$Fs/prms$N;					
-  a <- 10*log10((1/(delf*B))*Psstrimmed[prms$lcut:prms$hcut,]/(prms$pref^2))-prms$freqCal
+  a <- 10*log10((1/(delf*B))*Psstrimmed/(prms$pref^2))-prms$freqCal
 	
 }
 
@@ -995,7 +997,7 @@ calcMetrics<-function(prms, Psstrimmed, f, w){
   
   
   outList = list()
-  if('hybrid' %in% metrics){
+  if(any(c('all', 'hybrid') %in% metrics)){
     # Hybrid milidecade from PSS
     hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
     
@@ -1004,7 +1006,7 @@ calcMetrics<-function(prms, Psstrimmed, f, w){
     outList[['hybFreqs']]<-hybridMilidecade[[2]]
   }
   
-  if('thirdoct' %in% metrics){
+  if(any(c('all', 'thirdoct') %in% metrics)){
     # Third Ocatave Bands (checked)
     thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
     
@@ -1013,7 +1015,7 @@ calcMetrics<-function(prms, Psstrimmed, f, w){
     outList[['thirdOctF']]<-thirdOctBands[[2]]
   }
   
-  if('decadeband' %in% metrics){
+  if(any(c('all', 'decadeband') %in% metrics)){
     # Decade bands
     DecadeBands =calcDecadeBands(prms, Psstrimmed,f, w)
     
@@ -1022,12 +1024,20 @@ calcMetrics<-function(prms, Psstrimmed, f, w){
     outList[['DecadeBandsF']]<-DecadeBands[[2]]
   }
   
-  if('broadband' %in% metrics){
+  if(any(c('all', 'broadband') %in% metrics)){
     # Broadband (checked)
     BroadBandLevels =calcBroadband(prms,Psstrimmed)
     
     # add key value pair
     outList[['BroadBandLevels']]<-BroadBandLevels}
+  
+  if(any(c('psd', 'all') %in% metrics)){
+    
+    PSD<-calcPsd(prms, Psstrimmed, w)
+    
+      outList[['PSDLevels']]<-PSD
+    
+  }
   
   return(outList)
   

@@ -80,6 +80,8 @@ prms$alpha = dataOut[[2]]
 # Which metrics to calculate, case sensitive
 prms$metrics = t(list('hybrid', 'broadband', 'decadeband', 'thirdoct'))
 
+prms$metrics = t(list('all'))
+
 
 ###################################
 # Calibration, either end to end or frequency response
