@@ -308,7 +308,7 @@ for(ii in 1:nrow(audioData)){
   f = dataOut[[3]]
   avPSD= 10*log10(Psstrimmed)
   
-  # Hybrid milidecade from PSS
+  # Go calculate the metrics that you defined in prms$metrics
   allMetrics<-calcMetrics(prms, Psstrimmed, f, w)
 
   # First run, add add the frequency information
@@ -460,6 +460,5 @@ print(p)
 
 ```
 ![LTSA](https://user-images.githubusercontent.com/28478110/221433499-e689701f-9480-4014-bff1-fd7a3d2d25a9.png)
-
 
 
