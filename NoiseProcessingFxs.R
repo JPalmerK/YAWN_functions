@@ -9,7 +9,7 @@ library(viridis)
 library(scales)
 
 
-# UI function to get ICES parameters from user
+# UI function to get ICES parameters from user (under construction)
 getICESprms<-function(prms){
   
   # Input parameters and flesh out whatever is missing for the file information
@@ -97,7 +97,7 @@ getICESprms<-function(prms){
 
 # Turn the parameters and HDF5 into the ICES format 
 createICESmeta<-function(){
-  # a function to write
+  # a function to write. At some point. 
 }
 
 # Datafram of the audio files. Roughly approximates 'audioinfo' in matlbab
@@ -132,42 +132,6 @@ createAudioDataframe <- function(fileLoc,
   return(dataOut)
 }
 
-
-# Define a window using Merchant approach. 
-createWindow<-function(winname, prms){
-  
-  # get the window functions
-  # Input
-  # winname - character string either 'none', 'hann', 'Hamming', or 'Blackman'
-  # prms - Analysis prameters
-  # Returns
-  # dataOut - list of the window and the alpha value
-  
-  
-  if (winname== 'none'){
-    w = array(1,prms$N);
-    alpha = 1                #scaling factor
-  }
-  
-  if (winname == 'Hann'){
-    w = (0.5 - 0.5*cos(2*pi*(1:prms$N)/prms$N))
-    alpha = 0.5;                #scaling factor
-  }
-  
-  if (winname == 'Hamming'){
-    w = (0.54 - 0.46*cos(2*pi*(1:prms$N)/prms$N))
-    alpha = 0.55;                #scaling factor
-  }
-  
-  if (winname == 'Blackman'){
-    w = (0.42 - 0.5*cos(2*pi*(1:prms$N)/prms$N) + 
-           0.08*cos(4*pi*(1:prms$N)/prms$N))
-    alpha = 0.42;                #scaling factor
-  }
-  
-  dataOut = list(w, alpha)
-  return(dataOut)
-}
 
 
 writeToH5datarH5df<-function(ProjName, instrumentName,
@@ -306,6 +270,206 @@ writeToH5data<-function(H5group, dataType='hybridMiliDec',
 }
 
 
+writeMetricPrms<-function(prms, allMetrics, ProjName, instrumentName){
+  
+  # Function to write all the associated frequency limits etc with each of the 
+  # metrics
+  
+  # Input
+  # prms - paramters including prms$metrics to determin which metrics were run
+  # allmetrics- calculated metrics 
+  # projName - HDF5 file to write to 
+  # instrument - H5group
+  
+  for(metric in prms$metrics){
+  print(metric)  
+    #######################
+    # Hybrid miliband
+    ######################
+    if(metric %in% c('all', 'hybrid')){
+      
+      # Write the hybrid frequencies
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType='hybridDecFreqHz',
+                         newData = round(allMetrics$hybFreqs$center),
+                         dataStart=1,
+                         maxRows=length(allMetrics$hybFreqs$lowF),
+                         storagemMode='double')
+    }
+    
+  }
+  
+  #######################
+  # Third Octave
+  ######################
+  if(metric %in% c('all', 'thirdoct')){
+    
+    # Write the third-octave frequencies
+    writeToH5datarH5df(ProjName, instrumentName,
+                       dataType='thirdOctFreqHz',
+                       newData = round(allMetrics$thirdOctF),
+                       dataStart=1,
+                       maxRows= length( round(allMetrics$thirdOctF)),
+                       storagemMode='integer')
+  }
+  
+  #######################
+  # Decade Bands
+  ######################
+  if(metric %in% c('all', 'decadeband')){
+    # Write the hybrid data
+    writeToH5datarH5df(ProjName, instrumentName,
+                       dataType='decadeFreqHz',
+                       newData = floor(allMetrics$DecadeBandsF$fLow),
+                       dataStart=1,
+                       maxRows=length(allMetrics$DecadeBandsF$fLow),
+                       storagemMode='integer')
+  }
+  
+  
+}
+
+
+
+# Write HDF5 driver function for data
+writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
+                             dataStart,dataSetLenght){
+  
+  
+  # Driver function to write all calculated metrics to the HDF5 database
+  
+  # Input 
+  # prms- analysis parameters
+  # allMetrics- list containing metrics calcuated individuall or through calc metrics driver
+  # instrumentName - Initialized group for instrument (e.g. soundtrap) within a H5 file
+  # ProjName - Name of the HDF5 datafile that's already open. 
+  # dataSetLenght - number of rows to append
+  # dataStart- index of row to start writing data 
+  
+  dataSetLenght= length(allMetrics$hybFreqs$lowF)
+  
+  for(metric in prms$metrics){
+
+    
+    ###############################
+    # Hybrid Miliband
+    ###############################
+    if(metric %in% c('all', 'hybrid')){
+      
+      dataType<-'hybridMiliDecLevels'
+      newData <- round(allMetrics$hybLevels,2)
+      dataStart<-idStart
+      maxRows<-dataSetLenght
+      
+      
+      # Write the data
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType,newData, dataStart,maxRows)
+    }
+    
+    
+    ####################
+    # Third octave bands
+    ####################
+    if(metric %in% c('all', 'thirdoct')){
+      dataType<-'thirdOctLevels'
+      newData <- round(allMetrics$thridOctLevels,2)
+      dataStart<-idStart
+      maxRows<-dataSetLenght
+      
+      # Write the data
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType,newData, dataStart,maxRows)
+    }
+    
+    ####################
+    # Decade Bands
+    ####################
+    if(metric %in% c('all', 'decadeband')){
+      dataType<-'decadeLevels'
+      newData <- round(allMetrics$DecadeBandsLevels,2)
+      dataStart<-idStart
+      maxRows<-dataSetLenght
+      
+      # Write the data
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType,newData, dataStart,maxRows)
+    }
+    
+    
+    ####################
+    # Broadband Levels
+    ####################
+    if(metric %in% c('all', 'broadband')){
+      dataType<-'broadbandLevels'
+      newData <- round(allMetrics$BroadBandLevels,2)
+      dataStart<-idStart
+      maxRows<-dataSetLenght
+      
+      # Write the data
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType,newData, dataStart,maxRows)
+    }
+    
+    
+    ####################
+    # PSD- this is stupid, don't do it for long-term large  scale projects. 
+    # undermines the whole point of the hybrid milideacde bands
+    ####################
+    if(metric %in% c('all', 'psd')){
+      dataType<-'PSDLevels'
+      newData <- round(allMetrics$PSDLevels,2)
+      dataStart<-idStart
+      maxRows<-dataSetLenght
+      
+      # Write the data
+      writeToH5datarH5df(ProjName, instrumentName,
+                         dataType,newData, dataStart,maxRows)
+    }
+    
+
+    
+  }
+}
+
+
+# Define a window using Merchant approach. 
+createWindow<-function(winname, prms){
+  
+  # get the window functions
+  # Input
+  # winname - character string either 'none', 'hann', 'Hamming', or 'Blackman'
+  # prms - Analysis prameters
+  # Returns
+  # dataOut - list of the window and the alpha value
+  
+  
+  if (winname== 'none'){
+    w = array(1,prms$N);
+    alpha = 1                #scaling factor
+  }
+  
+  if (winname == 'Hann'){
+    w = (0.5 - 0.5*cos(2*pi*(1:prms$N)/prms$N))
+    alpha = 0.5;                #scaling factor
+  }
+  
+  if (winname == 'Hamming'){
+    w = (0.54 - 0.46*cos(2*pi*(1:prms$N)/prms$N))
+    alpha = 0.55;                #scaling factor
+  }
+  
+  if (winname == 'Blackman'){
+    w = (0.42 - 0.5*cos(2*pi*(1:prms$N)/prms$N) + 
+           0.08*cos(4*pi*(1:prms$N)/prms$N))
+    alpha = 0.42;                #scaling factor
+  }
+  
+  dataOut = list(w, alpha)
+  return(dataOut)
+}
+
+
 # Get frequency band limits for hybrid milidecades (usefull)
 getHybridBandLimits <-function(prms, f){
   
@@ -340,9 +504,6 @@ getHybridBandLimits <-function(prms, f){
   return(freqLims)
 }
 
-
-
-
 # Compress in time
 welch_compress<-function(prms, Psstrimmed, tt){
   # I'm not 100% sure this is what the welch typically does...
@@ -371,7 +532,6 @@ welch_compress<-function(prms, Psstrimmed, tt){
   return(dataOut)
   
 }
-
 
 # Function to create microphone/hydrophone frequency response
 calibrationMatrix<- function(prms, dims){
@@ -504,7 +664,6 @@ calcPSS <- function(audioData, ii=1, prms, w, freqResp =NULL) {
   
   return(dataOut)
 }
-
 
 # Hybred milidecad bands
 calcHybridMiDecade <-function(prms, Psstrimmed, f, w){
@@ -662,8 +821,10 @@ calcCustomBand = function(prms,Psstrimmed, f, flow,fhigh){
 
 # Calcualte PSD
 calcPsd<- function(prms, Psstrimmed, w){
+  # Calculating the entire power spectral density. Not recomended to save if running
+  # long term and or large scale analysis. Undermines the use of hybridmilidecade
   
-  # Calcualte the power spectral density
+  
   # Psstrimmed -  the trimmed spectral analysis
   # w - array of length N with the window values
   
@@ -734,6 +895,67 @@ calcThirdOctBands = function(prms, Psstrimmed,f, w){
   
   outData = list(TOL, round(fc))
   return(outData)
+  
+}
+
+# Driver function for the above metrics. Avoids 
+calcMetrics<-function(prms, Psstrimmed, f, w){
+  # Driver function to calculate useful metrics. Calls calcthirdoctbands etc.
+  # prms$metrics options are hybrid, broadband, decadeband, thirdoct, psd, and 
+  # all. 
+  
+  # Input
+  # prms- dataframe including prms$metrics - list of metrics to calculate including 
+  # Psstrimmed - power spectrum
+  # f - frequencies associated with the PSS
+  
+  metrics<-prms$metrics
+  
+  
+  outList = list()
+  if(any(c('all', 'hybrid') %in% metrics)){
+    # Hybrid milidecade from PSS
+    hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
+    
+    # add key value pair
+    outList[['hybLevels']]<-hybridMilidecade[[1]]
+    outList[['hybFreqs']]<-hybridMilidecade[[2]]
+  }
+  
+  if(any(c('all', 'thirdoct') %in% metrics)){
+    # Third Ocatave Bands (checked)
+    thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
+    
+    # add key value pair
+    outList[['thridOctLevels']]<-thirdOctBands[[1]]
+    outList[['thirdOctF']]<-thirdOctBands[[2]]
+  }
+  
+  if(any(c('all', 'decadeband') %in% metrics)){
+    # Decade bands
+    DecadeBands =calcDecadeBands(prms, Psstrimmed,f, w)
+    
+    # add key value pair
+    outList[['DecadeBandsLevels']]<-DecadeBands[[1]]
+    outList[['DecadeBandsF']]<-DecadeBands[[2]]
+  }
+  
+  if(any(c('all', 'broadband') %in% metrics)){
+    # Broadband (checked)
+    BroadBandLevels =calcBroadband(prms,Psstrimmed)
+    
+    # add key value pair
+    outList[['BroadBandLevels']]<-BroadBandLevels}
+  
+  if(any(c('psd', 'all') %in% metrics)){
+    
+    PSD<-calcPsd(prms, Psstrimmed, w)
+    
+      outList[['PSDLevels']]<-PSD
+    
+  }
+  
+  return(outList)
   
 }
 
@@ -986,63 +1208,6 @@ makePSDDist<-function(instrument_group){
   return(p)
 }
 
-calcMetrics<-function(prms, Psstrimmed, f, w){
-  # Driver function to return a matrix of 
-  # metrics - list of metrics to calculate including hybrid, broadband, decadeband
-  # and thirdoct
-  # prms- dataframe of parameters
-  # Psstrimmed - power spectrum
-  # f - frequencies associated with the PSS
-  
-  metrics<-prms$metrics
-  
-  
-  outList = list()
-  if(any(c('all', 'hybrid') %in% metrics)){
-    # Hybrid milidecade from PSS
-    hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
-    
-    # add key value pair
-    outList[['hybLevels']]<-hybridMilidecade[[1]]
-    outList[['hybFreqs']]<-hybridMilidecade[[2]]
-  }
-  
-  if(any(c('all', 'thirdoct') %in% metrics)){
-    # Third Ocatave Bands (checked)
-    thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
-    
-    # add key value pair
-    outList[['thridOctLevels']]<-thirdOctBands[[1]]
-    outList[['thirdOctF']]<-thirdOctBands[[2]]
-  }
-  
-  if(any(c('all', 'decadeband') %in% metrics)){
-    # Decade bands
-    DecadeBands =calcDecadeBands(prms, Psstrimmed,f, w)
-    
-    # add key value pair
-    outList[['DecadeBandsLevels']]<-DecadeBands[[1]]
-    outList[['DecadeBandsF']]<-DecadeBands[[2]]
-  }
-  
-  if(any(c('all', 'broadband') %in% metrics)){
-    # Broadband (checked)
-    BroadBandLevels =calcBroadband(prms,Psstrimmed)
-    
-    # add key value pair
-    outList[['BroadBandLevels']]<-BroadBandLevels}
-  
-  if(any(c('psd', 'all') %in% metrics)){
-    
-    PSD<-calcPsd(prms, Psstrimmed, w)
-    
-      outList[['PSDLevels']]<-PSD
-    
-  }
-  
-  return(outList)
-  
-}
 
   
 # # Function for processing the data within the GUI

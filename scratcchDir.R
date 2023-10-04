@@ -9,7 +9,7 @@ library(tuneR)
 
 
 #Define path to functions that we will use
-source(here('NoiseProcessingFxs.r'))
+source(('NoiseProcessingFxs.r'))
 
 # Scratch directory to set up noise analysis metrics following merchant 2012 (I think)
 
@@ -78,7 +78,7 @@ w =dataOut[[1]]
 prms$alpha = dataOut[[2]]
 
 # Which metrics to calculate, case sensitive
-prms$metrics = t(list('hybrid', 'broadband', 'decadeband', 'thirdoct'))
+prms$metrics = t(list('hybrid', 'broadband', 'decadeband', 'thirdoct', 'psd'))
 
 prms$metrics = t(list('all'))
 
@@ -167,64 +167,20 @@ dataSetLenght = sum(ceiling(audioData$Duration/60))
 
 
 
-# ######################################################################
-# # parallel version to make the h5df
-# #######################################################################
-# 
-# audioDatasub = audioData[1:5,]
-# 
-# processAudiotoH5DF<-function(prms, audioData, w){
-#   # Calculate the PSS within the user defined range, time stamps, and frequency
-#   # vector.
-#   dataOut = calcPSS(audioData, ii, prms, w)
-#   
-#   
-#   Psstrimmed= dataOut[[1]]
-#   tt= dataOut[[2]]
-#   f = dataOut[[3]]
-#   avPSD= 10*log10(Psstrimmed)
-#   
-#   # Hybrid milidecade from PSS
-#   hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
-#   hybLevels = hybridMilidecade[[1]]
-#   hybFreqs = hybridMilidecade[[2]]
-#   
-#   # Third Ocatave Bands (checked)
-#   thirdOctBands= calcThirdOctBands(prms, Psstrimmed, tt,f)
-#   thridOctLevels = thirdOctBands[[1]]
-#   thirdOctF = thirdOctBands[[2]]
-#   
-#   # Decade bands
-#   DecadeBands =calcDecadeBands(prms,dataOut[[1]], dataOut[[2]],dataOut[[3]])
-#   DecadeBandsLevels =DecadeBands[[1]]
-#   DecadeBandsF = DecadeBands[[2]]
-#   
-#   # Broadband (checked)
-#   BroadBandLevels =calcBroadband(prms,dataOut[[1]])
-#   
-#   countLen = length(tt)
-# }
-# 
-# num_cores <- detectCores()
-# cl <- makeCluster(num_cores)
-# parLapply(cl, file_paths, calc_bblvl_write_csv, csv_file_path)
-# stopCluster(cl)
-# 
-# #
-# tstart = Sys.time()
-# results <- parLapply(cl = parallelCluster,
-#                      dataLocs1,
-#                      processAudiotoH5DF)
-
-
 ######################################################################
 # Step through the soundfiles, create spectrogram and write to hdf5 file
 #######################################################################
+
+# Row to start on
 idStart =1
+writePrmsflag = TRUE
 
+# Data metrics (e.g. frequency bin centers) must be written on first iteration 
 
-for(ii in 1:nrow(audioData)){
-  
+#for(ii in 1:nrow(audioData)){
+
+for(ii in 1:1){ 
+    
   # Calculate the PSS within the user defined range, time stamps, and frequency
   # vector.
   dataOut = calcPSS(audioData, ii, prms, w)
@@ -235,61 +191,20 @@ for(ii in 1:nrow(audioData)){
   f = dataOut[[3]]
   avPSD= 10*log10(Psstrimmed)
   
-  
+  # Calculate the metrics defined earlier from the Power spectrum
   allMetrics<-calcMetrics(prms, Psstrimmed, f, w)
-
-  # # Hybrid milidecade from PSS
-  # hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
-  # hybLevels = hybridMilidecade[[1]]
-  # hybFreqs = hybridMilidecade[[2]]
-  # 
-  # # Third Ocatave Bands (checked)
-  # thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
-  # thridOctLevels = thirdOctBands[[1]]
-  # thirdOctF = thirdOctBands[[2]]
-  # 
-  # # Decade bands
-  # DecadeBands =calcDecadeBands(prms, Psstrimmed,f, w)
-  # DecadeBandsLevels =DecadeBands[[1]]
-  # DecadeBandsF = DecadeBands[[2]]
-  # 
-  # # Broadband (checked)
-  # BroadBandLevels =calcBroadband(prms,Psstrimmed)
   
+  # Figure out how long the resulting output is 
   countLen = length(tt)
 
   # First run, add add the frequency information
-  if(ii==1){
-
-    if('hybrid' %in% prms$metrics)
-
-    # Write the hybrid frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='hybridDecFreqHz',
-                       newData = round(hybFreqs$center),
-                       dataStart=1,
-                       maxRows=nrow(hybFreqs),
-                       storagemMode='double')
-
-    # Write the hybrid frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='decadeFreqHz',
-                       newData = DecadeBandsF$fLow,
-                       dataStart=1,
-                       maxRows=nrow(DecadeBandsF),
-                       storagemMode='integer')
-
-    # Write the third-octave frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='thirdOctFreqHz',
-                       newData = thirdOctF,
-                       dataStart=1,
-                       maxRows= length(thirdOctF),
-                       storagemMode='integer')}
-  ###################################################
-  # Add new data- will automatically create dataset on first row
-  ###################################################
-
+  if(isTRUE(writePrmsflag)){
+    # write the frequency cetners etc for the calculated metrics
+    writeMetricPrms(prms, allMetrics, ProjName, instrumentName)
+    
+    # only on first iteration
+    writePrmsflag=FALSE
+  }
 
   # Write the timestamps
   writeToH5datarH5df(ProjName, instrumentName,
@@ -298,27 +213,11 @@ for(ii in 1:nrow(audioData)){
                      dataStart=idStart,
                      maxRows<-dataSetLenght,
                      storagemMode<- 'character')
-
-  # write the hybrid milidecade levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'hybridMiliDecLevels',
-                     newData <- hybLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
-
-  # write the third octave band levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'thirdOctLevels',
-                     newData <- thridOctLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
   
-  # write the decade band levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'decadeLevels',
-                     newData <- DecadeBandsLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
+  # Driver function to simplify things. Writes all calculated metrics to 
+  writeAllMetrics(prms, allMetrics, ProjName, 
+                     instrumentName, dataStart=idStart, 
+                     dataSetLenght= length(allMetrics$hybFreqs$lowF))
 
   idStart =idStart+countLen
   
@@ -337,7 +236,7 @@ library(scales)
 library(hdf5r)
 library(lubridate)
 source('NoiseProcessingFxs.R')
-ProjName <-  "Adrift_2022.h5"
+ProjName <-  "Adrift_20222023-10-04165401.h5"
 instrumentName <- "ST6664"
 
 #open the files
