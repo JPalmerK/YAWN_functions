@@ -300,83 +300,52 @@ for(ii in 1:nrow(audioData)){
   # Calculate the PSS within the user defined range, time stamps, and frequency
   # vector. Returns list [1] power spectrum over the defined frequency range [2] time
   # stamp for each calcuation(PSS rows) [3] vector of frequencies for each calculation (PSS columns)  
+  # Calculate the PSS within the user defined range, time stamps, and frequency
+  # vector.
   dataOut = calcPSS(audioData, ii, prms, w)
   
-  # Initial audio calculation
+  
   Psstrimmed= dataOut[[1]]
   tt= dataOut[[2]]
   f = dataOut[[3]]
   avPSD= 10*log10(Psstrimmed)
   
-  # Go calculate the metrics that you defined in prms$metrics
+  # Calculate the metrics defined earlier from the Power spectrum
   allMetrics<-calcMetrics(prms, Psstrimmed, f, w)
+  
+  # Figure out how long the resulting output is 
+  countLen = length(tt)
 
-  # First run, add add the frequency information
-  if(ii==1){
+  # 1) Write the the frequency information for each of the metics. Use driver function to clean up the loop a bit
+  if(isTRUE(writePrmsflag)){
+    # write the frequency cetners etc for the calculated metrics
+    writeMetricPrms(prms, allMetrics, ProjName, instrumentName)
+    
+    # only on first iteration
+    writePrmsflag=FALSE
+  }
 
-    if('hybrid' %in% prms$metrics)
-
-    # Write the hybrid frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='hybridDecFreqHz',
-                       newData = round(hybFreqs$center),
-                       dataStart=1,
-                       maxRows=nrow(hybFreqs),
-                       storagemMode='double')
-
-    # Write the hybrid frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='decadeFreqHz',
-                       newData = DecadeBandsF$fLow,
-                       dataStart=1,
-                       maxRows=nrow(DecadeBandsF),
-                       storagemMode='integer')
-
-    # Write the third-octave frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='thirdOctFreqHz',
-                       newData = thirdOctF,
-                       dataStart=1,
-                       maxRows= length(thirdOctF),
-                       storagemMode='integer')}
-  ###################################################
-  # Add new data- will automatically create dataset on first row
-  ###################################################
-
-
-  # Write the timestamps
+  # 2) Write the timestamps 
   writeToH5datarH5df(ProjName, instrumentName,
                      dataType='DateTime',
                      newData = as.matrix(as.character(tt)),
                      dataStart=idStart,
                      maxRows<-dataSetLenght,
                      storagemMode<- 'character')
-
-  # write the hybrid milidecade levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'hybridMiliDecLevels',
-                     newData <- hybLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
-
-  # write the third octave band levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'thirdOctLevels',
-                     newData <- thridOctLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
   
-  # write the decade band levels
-  writeToH5datarH5df(ProjName, instrumentName,
-                     dataType<-'decadeLevels',
-                     newData <- DecadeBandsLevels,
-                     dataStart<-idStart,
-                     maxRows<-dataSetLenght)
+  
+  # 3) Write the metrics to the HDF5 dataframe
+  # Driver function to clean things up. Writes all calculated metrics to approperiate location 
+  writeAllMetrics(prms, allMetrics, ProjName, 
+                     instrumentName, dataStart=idStart, 
+                     dataSetLenght= length(allMetrics$hybFreqs$lowF))
 
   idStart =idStart+countLen
   
   print(ii)
 }
+
+H5Fclose(ProjName)
 
 H5Fclose(ProjName)
 
