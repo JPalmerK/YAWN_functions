@@ -160,7 +160,12 @@ audioData = createAudioDataframe(fileLoc,nameStringPattern = nameStringPattern,
 
 ## Analysis Parameters
 
-The following section of code sets up the analysis parameters. These are standard metrics in acoustics such as sample rate (fs), FFT length (samples, sorry Marie), and the averaging duration (welch) in seconds. Additional parameters are the option of removing the DC offset of the file once the sound is loaded by subtracting the mean. This was in the author's original version, but here is set to an option (recommended to leave as the default: TRUE).
+The following section of code sets up the analysis parameters. These are standard metrics in acoustics such as sample rate (fs), FFT length (samples, sorry Marie), and the averaging duration (welch) in seconds. Additional parameters are the option of removing the DC offset of the file once the sound is loaded by subtracting the mean. This was in the author's original version, but here is set to an option (recommended to leave as the default: TRUE). In the parameters the 'metrics' value is a list of which of the included calculations should be returned. For all metric included, set value to 'all'. Othwise options are 'hybrid', 'broadbabd', 'decadeband', and 'thirdoct', and 'psd'. 
+
+```{r}
+#Which metrics to calculate, case sensitive but order agnostic
+prms$metrics = t(list('hybrid', 'broadband', 'decadeband', 'thirdoct', 'psd'))
+```
 
 The calibration value can either be end-to-end in decibels or a frequency response. Here I've simulated a frequency response calibration. This could otherwise be uploaded from a CSV or similar. Note that if the calibration values are less than the Nyquist frequency, the user needs to add a value at fs/2 to their calibration dataframe. The last section creates windowing values (vector) and defines alpha in accordance with the functions published in Merchant et al. (2014).
 
@@ -192,7 +197,7 @@ prms$hcut = prms$Fs
 # Reference pressure, set to 1 for water
 prms$pref =1
 
-# remove DC offset by subtracting mean(yy) from yy
+# remove DC offset by subtracting mean(yy) from yy where yy is the audio signal
 prms$rmDC = TRUE
 
 # calibration, either end-to-end or frequency response
@@ -214,6 +219,8 @@ prms$DateRun = now(tzone = "UTC")
 w = windowFunctions('hann', prms)[[1]]
 prms$alpha = windowFunctions('hann', prms)[[1]]
 
+# Which metrics to calculate, case sensitive, order does not matter
+prms$metrics = t(list('hybrid', 'broadband', 'decadeband', 'thirdoct', 'psd'))
 ```
 
 ## Database Initialization
@@ -223,10 +230,9 @@ The following section of code sets up the HDF5 database including the study name
 The other important thing that happens in this bit of code is estimating the total number of rows that will ultimately be in the dataset. If you are planning on adding to the dataset at a later date (e.g. an instrument comes ashore, is refurbished, & then returned to the field) then you need to ensure that the length is greater or equal to your ultimate length. In this case I know that I will not be adding to this dataset so I'm using the length of the time in minutes (**tt**) later on.
 
 ```{r}
-# Database name and instrument
+# Database name and instrument, adding current computer time for debugging
 ProjName = paste0("AcousticStudy",format(Sys.time(), "%Y-%m-%d%H%M%S"), '.h5')
 instrumentName = "ST5987"
-
 
 # Create the  hdf5 file and fill out meta and audiofiles
 h5createFile(ProjName)
@@ -247,7 +253,7 @@ h5write(
 
 ##########################################################################
 # Guesstimate total duration of the database, this should be revisited but works
-# for now
+# for now. Note this *must* be as long or longer than your intended data. HDF5 is preallocated.
 ##########################################################################
 # figure out maximum dimensions of the output data
 timesAll = seq(floor_date(min(audioData$StartTime), 'minute'),
@@ -265,7 +271,8 @@ The system runs by loading each audio file, calculating the PSS using the calcPs
 - **calcDecadeBands** - decade band levels- datatype-'decadeLevels'
 - **calcCustomBand** - custom band level (define low and high frequency limits) - datatype- not defined suggest lowToHighHzLevels:)
 - **calcThirdOctBands** -third octave band levels- datatype- 'thirdOctLevels'
-- **calcPsd** - Power Spectral Density-  datatype- not defined :) suggest 'psdLevels'
+- **calcPsd** - Power Spectral Density-  datatype- 'psdLevels'
+- **calcMetrics** Driver function for the above functions. 
 
 The pre-defined names only pertain to hybrid milidecade and theird octave levels because I've written convienience functions to produce figures from these datasets. In reality, you can call them whatever you want and pull the relevent portions of the make figures code and adapt to your specific dataset. 
 
@@ -288,13 +295,11 @@ Putting the above functions in a loop, we now step through the the \*.wav file i
 # Step through the soundfiles, create spectrogram and write to hdf5 file
 #######################################################################
 idStart =1
-
-
 for(ii in 1:nrow(audioData)){
-  
-  
+
   # Calculate the PSS within the user defined range, time stamps, and frequency
-  # vector.
+  # vector. Returns list [1] power spectrum over the defined frequency range [2] time
+  # stamp for each calcuation(PSS rows) [3] vector of frequencies for each calculation (PSS columns)  
   dataOut = calcPSS(audioData, ii, prms, w)
   
   # Initial audio calculation
@@ -304,67 +309,77 @@ for(ii in 1:nrow(audioData)){
   avPSD= 10*log10(Psstrimmed)
   
   # Hybrid milidecade from PSS
-  hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
-  hybLevels = hybridMilidecade[[1]]
-  hybFreqs = hybridMilidecade[[2]]
-  
-  # Third Ocatave Bands (checked)
-  thirdOctBands= calcThirdOctBands(prms, Psstrimmed, tt,f)
-  thridOctLevels = thirdOctBands[[1]]
-  thirdOctF = thirdOctBands[[2]]
-  
-  # Broadband (checked)
-  BroadBandLevels =calcBroadband(prms,dataOut[[1]]) 
-  
-  
-  # First run, add add the frequency information 
+  allMetrics<-calcMetrics(prms, Psstrimmed, f, w)
+
+  # First run, add add the frequency information
   if(ii==1){
-    # Create new datasets for the frequency information for each of our metrics (except broadband). Here decidecade and third octave. 
-    
-    
+
+    if('hybrid' %in% prms$metrics)
+
     # Write the hybrid frequencies
     writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='hybridDecFreqHz', # metric name
-                       newData = hybFreqs$center,  # center frequncies
+                       dataType='hybridDecFreqHz',
+                       newData = round(hybFreqs$center),
                        dataStart=1,
                        maxRows=nrow(hybFreqs),
                        storagemMode='double')
-    
-    
+
+    # Write the hybrid frequencies
+    writeToH5datarH5df(ProjName, instrumentName,
+                       dataType='decadeFreqHz',
+                       newData = DecadeBandsF$fLow,
+                       dataStart=1,
+                       maxRows=nrow(DecadeBandsF),
+                       storagemMode='integer')
+
     # Write the third-octave frequencies
     writeToH5datarH5df(ProjName, instrumentName,
-                       dataType='thirdOctFreqHz', 
-                       newData = thirdOctF, 
+                       dataType='thirdOctFreqHz',
+                       newData = thirdOctF,
                        dataStart=1,
                        maxRows= length(thirdOctF),
-                       storagemMode='integer')
-    }
+                       storagemMode='integer')}
   ###################################################
-  # Add new data to the dataset
+  # Add new data- will automatically create dataset on first row
   ###################################################
-  
+
+
   # Write the timestamps
   writeToH5datarH5df(ProjName, instrumentName,
-                     dataType='timeUTC', 
-                     newData = as.matrix(as.character(tt)), 
-                     dataStart=((ii-1)*length(tt))+1,
-                     maxRows=length(timesAll), 
-                     storagemMode= 'character')
-  
+                     dataType='DateTime',
+                     newData = as.matrix(as.character(tt)),
+                     dataStart=idStart,
+                     maxRows<-dataSetLenght,
+                     storagemMode<- 'character')
+
   # write the hybrid milidecade levels
   writeToH5datarH5df(ProjName, instrumentName,
-                     dataType='hybridMiliDecLevels', 
-                     newData = hybLevels, 
-                     dataStart=((ii-1)*nrow(hybLevels))+1,
-                     maxRows=length(timesAll))
-  
+                     dataType<-'hybridMiliDecLevels',
+                     newData <- hybLevels,
+                     dataStart<-idStart,
+                     maxRows<-dataSetLenght)
 
+  # write the third octave band levels
+  writeToH5datarH5df(ProjName, instrumentName,
+                     dataType<-'thirdOctLevels',
+                     newData <- thridOctLevels,
+                     dataStart<-idStart,
+                     maxRows<-dataSetLenght)
+  
+  # write the decade band levels
+  writeToH5datarH5df(ProjName, instrumentName,
+                     dataType<-'decadeLevels',
+                     newData <- DecadeBandsLevels,
+                     dataStart<-idStart,
+                     maxRows<-dataSetLenght)
+
+  idStart =idStart+countLen
   
   print(ii)
 }
 
-# Close the HDF5 file
 H5Fclose(ProjName)
+
 ```
 
 ## Create Figures from the HDF5 Database
