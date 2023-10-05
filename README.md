@@ -280,7 +280,7 @@ A custom function has been created to write the data to the database. The dataTy
 
 ```{r}
   # Write the timestamps
-  writeToH5datarH5df(ProjName, instrumentName,
+  writeDataToHDF5(ProjName, instrumentName,
                      dataType='timeUTC', 
                      newData = as.matrix(as.character(tt)), 
                      dataStart=((ii-1)*length(tt))+1,
@@ -326,7 +326,7 @@ for(ii in 1:nrow(audioData)){
   }
 
   # 2) Write the timestamps 
-  writeToH5datarH5df(ProjName, instrumentName,
+  writeDataToHDF5(ProjName, instrumentName,
                      dataType='DateTime',
                      newData = as.matrix(as.character(tt)),
                      dataStart=idStart,
