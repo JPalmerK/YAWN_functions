@@ -70,7 +70,7 @@ A code review had not been preformed. Volunteers welcome. Snacks provided.
 ___
 ## To do (in no particular order)
 1) ~~Implement figure code with hybrid mili-decade structure and HDF5 data (this is the first priortiy actually, not immediately clear the best approach for doing this)~~
-2) Incorporate into SHINY app or similar to allow easy access for new/non-acousticians
+2) Incorporate into SHINY app or similar to allow easy access for new/non-acousticians- *Not happening. Too slow. Better establish csv file with suggested parameters.*
 3) ~~low users to load frequency response of hydropone/microphone system rather than single value~~ fx structure updated, simulated data there
 4) ~~Modularize write to HDF5 section~~
 5) ~~Match window options with NM version~~
@@ -278,6 +278,8 @@ The pre-defined names only pertain to hybrid milidecade and theird octave levels
 
 A custom function has been created to write the data to the database. The dataType is the name of the dataset, newData is the result of the analysis so will be the octave band levels, time, third octave band levels etc. Datastart is the index of where, in the dataset, the new data will be written. Thus if the analysis results in in a 6x5000 matrix for 6 minutes of the anlaysis the dataStart will be 1 on the first iteration followed by 7, 13, 19 and so forth. The data are organized such that columns represent frequencies and rows represent time. Max rows is the total number of rows that we expect in the dataset (as above). In my understanding its better to overestimate this, as I've done here. Storage mode is the type of data represented in the dataset. The default is double.
 
+Within the noise analysis loop, this function is used only to write the timestamps to the HDF5 file. Otherwise it has been replaced by the driver functions **writeMetricPrms** and **writeAllMetrics** which take in the metrics calculated for each file and automatically assigns them to the correct sheet in the database.
+
 ```{r}
   # Write the timestamps
   writeDataToHDF5(ProjName, instrumentName,
@@ -316,8 +318,12 @@ for(ii in 1:nrow(audioData)){
   # Figure out how long the resulting output is 
   countLen = length(tt)
 
-  # 1) Write the the frequency information for each of the metics. Use driver function to clean up the loop a bit
-  if(isTRUE(writePrmsflag)){
+  ######################################
+  # 1) Write the the frequency information for each of the user defined metics.
+  # The driver function (writeMetricPrms) is used to call write writeDataToHDF5 for each of the noise metrics
+  ###############################################
+
+   if(isTRUE(writePrmsflag)){
     # write the frequency cetners etc for the calculated metrics
     writeMetricPrms(prms, allMetrics, ProjName, instrumentName)
     
@@ -325,7 +331,11 @@ for(ii in 1:nrow(audioData)){
     writePrmsflag=FALSE
   }
 
-  # 2) Write the timestamps 
+  ######################################################
+  # 2) Write the timestamps
+  #  For each of the audiofiles, record the time of each noise measure. In UTC. Or should be if diligince on user end is implemented
+ #############################################################
+
   writeDataToHDF5(ProjName, instrumentName,
                      dataType='DateTime',
                      newData = as.matrix(as.character(tt)),
@@ -333,8 +343,12 @@ for(ii in 1:nrow(audioData)){
                      maxRows<-dataSetLenght,
                      storagemMode<- 'character')
   
-  
-  # 3) Write the metrics to the HDF5 dataframe
+
+ #######################################################################
+ # 3) Write the metrics to the HDF5 dataframe
+ # Last driver function. Write all of the calculated metricies to the HDF5 file. Users can alteratively use
+ # writeDataToHDF5() to write specific metrics.
+ ######################################################################
   # Driver function to clean things up. Writes all calculated metrics to approperiate location 
   writeAllMetrics(prms, allMetrics, ProjName, 
                      instrumentName, dataStart=idStart, 
@@ -352,8 +366,6 @@ H5Fclose(ProjName)
 ```
 
 ## Create Figures from the HDF5 Database
-
-*warning*- The author has approximately 8 days experience with HDF5 files at the time of writing. There are undoubtedly cleaner ways to do this so if you have suggestions please reach out.
 
 Now that we have a database with our instrument, how do we get the data out? The following section of code shows one way to do that and create a PSD plot.
 
