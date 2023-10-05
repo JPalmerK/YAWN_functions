@@ -134,7 +134,7 @@ createAudioDataframe <- function(fileLoc,
 
 
 
-writeToH5datarH5df<-function(ProjName, instrumentName,
+writeDataToHDF5<-function(ProjName, instrumentName,
                              dataType='hybridMiliDec', newData, dataStart=1,
                              maxRows=NULL, storagemMode = "double",
                              fillValue = NaN){
@@ -223,51 +223,51 @@ writeToH5datarH5df<-function(ProjName, instrumentName,
   
 }
 
-
-# Create new or write h5df data
-writeToH5data<-function(H5group, dataType='hybridMiliDec',
-                        newData, newCols=NULL, newRows=NULL){
-  
-  # Write the data to a database using the hdf5r package (nicer but ungodly slow)
-  
-  # Input 
-  # H5group - Initialized group for instrument (e.g. soundtrap) within a H5 file
-  # dataType - character string of the type of noise level data (e.g. broadband)
-  # newData - matrix or vector of the new data to write
-  # dataStart-  where in the dataset to start writing the new data
-  # maxRows - if initilizing the dataset, total number of expected rows in the 
-  # newCols - column names if first run
-  
-  # if the data isn't in the instrument, add the metric
-  if(!dataType %in% H5group$ls()$name){
-    
-    # not working -trying to intialize dataset to increase speed. Crapps out
-    # after 20 6 second files.
-    uint2_dt <- h5types$H5T_NATIVE_UINT32$set_size(1)$set_precision(2)$set_sign(h5const$H5T_SGN_NONE)
-    space_ds <- H5group$new(dims = c(10, 10), maxdims = c(Inf, 10))
-    
-    H5group[[dataType]]<-newData
-    h5attr(H5group[[dataType]], "colnames") <- newCols
-    
-    
-  }else{
-    # add to the existing data
-    datDims = H5group[[dataType]]$dims
-    
-    # some data only one dimension
-    if(is.na(ncol(newData)) || is.null(ncol(newData))){
-      H5group[[dataType]][datDims+1: datDims+length(newData)]<-newData
-    }else{
-      # modify the data in the group
-      H5group[[dataType]][
-        (datDims[1]+1): (datDims[1]+nrow(newData)),1:ncol(newData)]<-newData
-    }
-  }
-  
-  # H5group$close()
-  
-  
-}
+# 
+# # Create new or write h5df data
+# writeToH5data<-function(H5group, dataType='hybridMiliDec',
+#                         newData, newCols=NULL, newRows=NULL){
+#   
+#   # Write the data to a database using the hdf5r package (nicer but ungodly slow)
+#   
+#   # Input 
+#   # H5group - Initialized group for instrument (e.g. soundtrap) within a H5 file
+#   # dataType - character string of the type of noise level data (e.g. broadband)
+#   # newData - matrix or vector of the new data to write
+#   # dataStart-  where in the dataset to start writing the new data
+#   # maxRows - if initilizing the dataset, total number of expected rows in the 
+#   # newCols - column names if first run
+#   
+#   # if the data isn't in the instrument, add the metric
+#   if(!dataType %in% H5group$ls()$name){
+#     
+#     # not working -trying to intialize dataset to increase speed. Crapps out
+#     # after 20 6 second files.
+#     uint2_dt <- h5types$H5T_NATIVE_UINT32$set_size(1)$set_precision(2)$set_sign(h5const$H5T_SGN_NONE)
+#     space_ds <- H5group$new(dims = c(10, 10), maxdims = c(Inf, 10))
+#     
+#     H5group[[dataType]]<-newData
+#     h5attr(H5group[[dataType]], "colnames") <- newCols
+#     
+#     
+#   }else{
+#     # add to the existing data
+#     datDims = H5group[[dataType]]$dims
+#     
+#     # some data only one dimension
+#     if(is.na(ncol(newData)) || is.null(ncol(newData))){
+#       H5group[[dataType]][datDims+1: datDims+length(newData)]<-newData
+#     }else{
+#       # modify the data in the group
+#       H5group[[dataType]][
+#         (datDims[1]+1): (datDims[1]+nrow(newData)),1:ncol(newData)]<-newData
+#     }
+#   }
+#   
+#   # H5group$close()
+#   
+#   
+# }
 
 
 writeMetricPrms<-function(prms, allMetrics, ProjName, instrumentName){
@@ -289,7 +289,7 @@ writeMetricPrms<-function(prms, allMetrics, ProjName, instrumentName){
     if(metric %in% c('all', 'hybrid')){
       
       # Write the hybrid frequencies
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType='hybridDecFreqHz',
                          newData = round(allMetrics$hybFreqs$center),
                          dataStart=1,
@@ -305,7 +305,7 @@ writeMetricPrms<-function(prms, allMetrics, ProjName, instrumentName){
   if(metric %in% c('all', 'thirdoct')){
     
     # Write the third-octave frequencies
-    writeToH5datarH5df(ProjName, instrumentName,
+    writeDataToHDF5(ProjName, instrumentName,
                        dataType='thirdOctFreqHz',
                        newData = round(allMetrics$thirdOctF),
                        dataStart=1,
@@ -318,7 +318,7 @@ writeMetricPrms<-function(prms, allMetrics, ProjName, instrumentName){
   ######################
   if(metric %in% c('all', 'decadeband')){
     # Write the hybrid data
-    writeToH5datarH5df(ProjName, instrumentName,
+    writeDataToHDF5(ProjName, instrumentName,
                        dataType='decadeFreqHz',
                        newData = floor(allMetrics$DecadeBandsF$fLow),
                        dataStart=1,
@@ -363,7 +363,7 @@ writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
       
       
       # Write the data
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType,newData, dataStart,maxRows)
     }
     
@@ -378,7 +378,7 @@ writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
       maxRows<-dataSetLenght
       
       # Write the data
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType,newData, dataStart,maxRows)
     }
     
@@ -392,7 +392,7 @@ writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
       maxRows<-dataSetLenght
       
       # Write the data
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType,newData, dataStart,maxRows)
     }
     
@@ -407,7 +407,7 @@ writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
       maxRows<-dataSetLenght
       
       # Write the data
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType,newData, dataStart,maxRows)
     }
     
@@ -423,7 +423,7 @@ writeAllMetrics<-function(prms, allMetrics, ProjName, instrumentName,
       maxRows<-dataSetLenght
       
       # Write the data
-      writeToH5datarH5df(ProjName, instrumentName,
+      writeDataToHDF5(ProjName, instrumentName,
                          dataType,newData, dataStart,maxRows)
     }
     
@@ -1208,180 +1208,3 @@ makePSDDist<-function(instrument_group){
   return(p)
 }
 
-
-  
-# # Function for processing the data within the GUI
-# analyzeTheData <- function(audioData,  prms, w, ProjName, instrumentName, input){
-#   
-#   # if file doesn't already exist, create it
-#   if(!file.exists(ProjName)){
-#     h5createFile(ProjName)
-#   }
-#   
-#   # create group for location 1 (here we are going with just the hydrophone serial number)
-#   h5createGroup(ProjName, instrumentName)
-#   
-#   # add the parameter and the files
-#   h5write(
-#     prms,
-#     file =ProjName,
-#     paste(instrumentName,"Parms",sep="/"))
-#   
-#   # Write all the audio information to the database for idiot checking in
-#   # the future
-#   h5write(
-#     audioData$FileName,
-#     file = ProjName,
-#     paste(instrumentName,"Files",sep="/"))
-#   
-#   # Estimate the number of rows to pre-allocate the datasets
-#   dataSetLenght = sum(ceiling(audioData$Duration/60))
-#   
-#   
-#   idStart =1
-#     for(ii in 1:nrow(audioData)){
-#       
-#       # Calculate the PSS within the user defined range, time stamps, and frequency
-#       # vector.
-#       dataOut = calcPSS(audioData, ii, prms, w)
-#       
-#       
-#       Psstrimmed= dataOut[[1]]
-#       tt= dataOut[[2]]
-#       f = dataOut[[3]]
-#       avPSD= 10*log10(Psstrimmed)
-#       
-#       # Hybrid milidecade from PSS
-#       if("Hybrid Milidecade" %in% input$analysis_type){
-#         hybridMilidecade = calcHybridMiDecade(prms, Psstrimmed, f, w)
-#         hybLevels = hybridMilidecade[[1]]
-#         hybFreqs = hybridMilidecade[[2]]}
-#       
-#       # Third Ocatave Bands (checked)
-#       if("OneThird Octave Bands" %in% input$analysis_type){
-#         thirdOctBands= calcThirdOctBands(prms, Psstrimmed,f, w)
-#         thridOctLevels = thirdOctBands[[1]]
-#         thirdOctF = thirdOctBands[[2]]}
-#       
-#       # Decade bands
-#       if("Decade Band" %in% input$analysis_type){
-#         DecadeBands =calcDecadeBands(prms,Psstrimmed, f, w)
-#         DecadeBandsLevels =DecadeBands[[1]]
-#         DecadeBandsF = DecadeBands[[2]]}
-#       
-#       # Broadband (checked)
-#       if("Broadband" %in% input$analysis_type){
-#         BroadBandLevels =calcBroadband(prms,Psstrimmed)}
-#       
-#       # Custom Bands
-#       if("Custom Band" %in% input$analysis_type){
-#         customLevels = calcCustomBand(prms,Psstrimmed, f,
-#                                       input$custLoF,input$custHiF)[[1]]}
-#       
-#       # Duration of the output analysis
-#       countLen = length(tt)
-#       
-#       # First run, add add the frequency information
-#       if(ii==1){
-#         
-#         
-#         # Write the hybrid frequencies
-#         if("Hybrid Milidecade" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType='hybridDecFreqHz',
-#                              newData = hybFreqs$center,
-#                              dataStart=1,
-#                              maxRows=nrow(hybFreqs),
-#                              storagemMode='integer')}
-#         
-#         # Write the hybrid frequencies
-#         if("Decade Band" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType='decadeFreqHz',
-#                              newData = DecadeBandsF$fLow,
-#                              dataStart=1,
-#                              maxRows=nrow(DecadeBandsF),
-#                              storagemMode='integer')}
-#         
-#         # Write the third-octave frequencies
-#         if("OneThird Octave Bands" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType='thirdOctFreqHz',
-#                              newData = thirdOctF,
-#                              dataStart=1,
-#                              maxRows= length(thirdOctF),
-#                              storagemMode='integer')}
-#         
-#         # Custom Bands
-#         if("Custom Band" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType='customBand',
-#                              newData = c(input$custLoF,input$custHiF),
-#                              dataStart=1,
-#                              maxRows= length(thirdOctF),
-#                              storagemMode='integer')}
-#         
-#         ###################################################
-#         # Add new data- will automatically create dataset on first row
-#         ###################################################
-#         
-#         
-#         # Write the timestamps
-#         writeToH5datarH5df(ProjName, instrumentName,
-#                            dataType='DateTime',
-#                            newData = as.matrix(as.character(tt)),
-#                            dataStart=idStart,
-#                            maxRows<-dataSetLenght,
-#                            storagemMode<- 'character')
-#         
-#         # write the hybrid milidecade levels
-#         if("Hybrid Milidecade" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType<-'hybridMiliDecLevels',
-#                              newData <- hybLevels,
-#                              dataStart<-idStart,
-#                              maxRows<-dataSetLenght)}
-#         
-#         # write the third octave band levels
-#         if("OneThird Octave Bands" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType<-'thirdOctLevels',
-#                              newData <- thridOctLevels,
-#                              dataStart<-idStart,
-#                              maxRows<-dataSetLenght)}
-#         
-#         # write the decade band levels
-#         if("Decade Band" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType<-'decadeLevels',
-#                              newData <- DecadeBandsLevels,
-#                              dataStart<-idStart,
-#                              maxRows<-dataSetLenght)}
-#         
-#         
-#         # write the broadband levels
-#         if("broadband" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType<-'thirdOctLevels',
-#                              newData <- thridOctLevels,
-#                              dataStart<-idStart,
-#                              maxRows<-dataSetLenght)}
-#         
-#         # write the broadband levels
-#         if("Custom Band" %in% input$analysis_type){
-#           writeToH5datarH5df(ProjName, instrumentName,
-#                              dataType<-'customLevels',
-#                              newData <- customLevels,
-#                              dataStart<-idStart,
-#                              maxRows<-dataSetLenght)}
-#         
-#         
-#         idStart =idStart+countLen
-#         print(ii)
-#         #incProgress(1/nrow(audioData), detail = paste("File", ii, 'of ', nrow(audioData)))
-#       }
-#       
-#     }
-# }
-#   
-# 

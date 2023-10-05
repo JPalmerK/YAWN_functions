@@ -207,7 +207,7 @@ for(ii in 1:1){
   }
 
   # Write the timestamps
-  writeToH5datarH5df(ProjName, instrumentName,
+  writeDataToHDF5(ProjName, instrumentName,
                      dataType='DateTime',
                      newData = as.matrix(as.character(tt)),
                      dataStart=idStart,
